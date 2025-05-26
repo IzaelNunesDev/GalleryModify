@@ -43,31 +43,31 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.google.ai.edge.gallery.data.Model
-import com.google.ai.edge.gallery.data.TASK_IMAGE_CLASSIFICATION
-import com.google.ai.edge.gallery.data.TASK_IMAGE_GENERATION
-import com.google.ai.edge.gallery.data.TASK_LLM_CHAT
-import com.google.ai.edge.gallery.data.TASK_LLM_ASK_IMAGE
-import com.google.ai.edge.gallery.data.TASK_LLM_PROMPT_LAB
-import com.google.ai.edge.gallery.data.TASK_TEXT_CLASSIFICATION
+// TASK_IMAGE_CLASSIFICATION removed
+// TASK_IMAGE_GENERATION removed
+// TASK_LLM_CHAT removed
+import com.google.ai.edge.gallery.data.TASK_LLM_ASK_IMAGE // Keep this
+// TASK_LLM_PROMPT_LAB removed
+// TASK_TEXT_CLASSIFICATION removed
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.data.TaskType
 import com.google.ai.edge.gallery.data.getModelByName
 import com.google.ai.edge.gallery.ui.ViewModelProvider
 import com.google.ai.edge.gallery.ui.home.HomeScreen
-import com.google.ai.edge.gallery.ui.imageclassification.ImageClassificationDestination
-import com.google.ai.edge.gallery.ui.imageclassification.ImageClassificationScreen
-import com.google.ai.edge.gallery.ui.imagegeneration.ImageGenerationDestination
-import com.google.ai.edge.gallery.ui.imagegeneration.ImageGenerationScreen
-import com.google.ai.edge.gallery.ui.llmchat.LlmChatDestination
-import com.google.ai.edge.gallery.ui.llmchat.LlmChatScreen
-import com.google.ai.edge.gallery.ui.llmchat.LlmAskImageDestination
-import com.google.ai.edge.gallery.ui.llmchat.LlmAskImageScreen
-import com.google.ai.edge.gallery.ui.llmsingleturn.LlmSingleTurnDestination
-import com.google.ai.edge.gallery.ui.llmsingleturn.LlmSingleTurnScreen
+// ImageClassificationDestination removed
+// ImageClassificationScreen removed
+// ImageGenerationDestination removed
+// ImageGenerationScreen removed
+// LlmChatDestination removed
+// LlmChatScreen removed
+import com.google.ai.edge.gallery.ui.llmchat.LlmAskImageDestination // Keep this
+import com.google.ai.edge.gallery.ui.llmchat.LlmAskImageScreen // Keep this
+// LlmSingleTurnDestination removed
+// LlmSingleTurnScreen removed
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManager
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
-import com.google.ai.edge.gallery.ui.textclassification.TextClassificationDestination
-import com.google.ai.edge.gallery.ui.textclassification.TextClassificationScreen
+// TextClassificationDestination removed
+// TextClassificationScreen removed
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -158,91 +158,6 @@ fun GalleryNavHost(
       Text("")
     }
 
-    // Text classification.
-    composable(
-      route = "${TextClassificationDestination.route}/{modelName}",
-      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      getModelFromNavigationParam(it, TASK_TEXT_CLASSIFICATION)?.let { defaultModel ->
-        modelManagerViewModel.selectModel(defaultModel)
-
-        TextClassificationScreen(
-          modelManagerViewModel = modelManagerViewModel,
-          navigateUp = { navController.navigateUp() },
-        )
-      }
-    }
-
-    // Image classification.
-    composable(
-      route = "${ImageClassificationDestination.route}/{modelName}",
-      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      getModelFromNavigationParam(it, TASK_IMAGE_CLASSIFICATION)?.let { defaultModel ->
-        modelManagerViewModel.selectModel(defaultModel)
-
-        ImageClassificationScreen(
-          modelManagerViewModel = modelManagerViewModel,
-          navigateUp = { navController.navigateUp() },
-        )
-      }
-    }
-
-    // Image generation.
-    composable(
-      route = "${ImageGenerationDestination.route}/{modelName}",
-      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      getModelFromNavigationParam(it, TASK_IMAGE_GENERATION)?.let { defaultModel ->
-        modelManagerViewModel.selectModel(defaultModel)
-
-        ImageGenerationScreen(
-          modelManagerViewModel = modelManagerViewModel,
-          navigateUp = { navController.navigateUp() },
-        )
-      }
-    }
-
-    // LLM chat demos.
-    composable(
-      route = "${LlmChatDestination.route}/{modelName}",
-      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      getModelFromNavigationParam(it, TASK_LLM_CHAT)?.let { defaultModel ->
-        modelManagerViewModel.selectModel(defaultModel)
-
-        LlmChatScreen(
-          modelManagerViewModel = modelManagerViewModel,
-          navigateUp = { navController.navigateUp() },
-        )
-      }
-    }
-
-    // LLM single turn.
-    composable(
-      route = "${LlmSingleTurnDestination.route}/{modelName}",
-      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      getModelFromNavigationParam(it, TASK_LLM_PROMPT_LAB)?.let { defaultModel ->
-        modelManagerViewModel.selectModel(defaultModel)
-
-        LlmSingleTurnScreen(
-          modelManagerViewModel = modelManagerViewModel,
-          navigateUp = { navController.navigateUp() },
-        )
-      }
-    }
-
     // LLM image to text.
     composable(
       route = "${LlmAskImageDestination.route}/{modelName}",
@@ -250,6 +165,11 @@ fun GalleryNavHost(
       enterTransition = { slideEnter() },
       exitTransition = { slideExit() },
     ) {
+      // In the simplified Tasks.kt, TASK_LLM_ASK_IMAGE is the only task.
+      // Its models list is initially empty, models are added via ModelManager.
+      // So, getModelFromNavigationParam will rely on modelName being present
+      // or handle the case where task.models might be empty if modelName is not provided.
+      // Forcing it to use TASK_LLM_ASK_IMAGE here.
       getModelFromNavigationParam(it, TASK_LLM_ASK_IMAGE)?.let { defaultModel ->
         modelManagerViewModel.selectModel(defaultModel)
 
@@ -272,7 +192,7 @@ fun GalleryNavHost(
       getModelByName(modelName)?.let { model ->
         // TODO(jingjin): need to show a list of possible tasks for this model.
         navigateToTaskScreen(
-          navController = navController, taskType = TaskType.LLM_CHAT, model = model
+          navController = navController, taskType = TaskType.LLM_ASK_IMAGE, model = model
         )
       }
     }
@@ -283,15 +203,13 @@ fun navigateToTaskScreen(
   navController: NavHostController, taskType: TaskType, model: Model? = null
 ) {
   val modelName = model?.name ?: ""
-  when (taskType) {
-    TaskType.TEXT_CLASSIFICATION -> navController.navigate("${TextClassificationDestination.route}/${modelName}")
-    TaskType.IMAGE_CLASSIFICATION -> navController.navigate("${ImageClassificationDestination.route}/${modelName}")
-    TaskType.LLM_CHAT -> navController.navigate("${LlmChatDestination.route}/${modelName}")
-    TaskType.LLM_ASK_IMAGE -> navController.navigate("${LlmAskImageDestination.route}/${modelName}")
-    TaskType.LLM_PROMPT_LAB -> navController.navigate("${LlmSingleTurnDestination.route}/${modelName}")
-    TaskType.IMAGE_GENERATION -> navController.navigate("${ImageGenerationDestination.route}/${modelName}")
-    TaskType.TEST_TASK_1 -> {}
-    TaskType.TEST_TASK_2 -> {}
+  // All task types now navigate to LlmAskImageDestination
+  if (taskType == TaskType.LLM_ASK_IMAGE) {
+    navController.navigate("${LlmAskImageDestination.route}/${modelName}")
+  } else {
+    // Optionally, log or handle other task types if they appear unexpectedly
+    Log.w(TAG, "navigateToTaskScreen called with unexpected taskType: $taskType, navigating to LLM_ASK_IMAGE by default.")
+    navController.navigate("${LlmAskImageDestination.route}/${modelName}")
   }
 }
 

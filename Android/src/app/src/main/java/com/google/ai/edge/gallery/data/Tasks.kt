@@ -75,41 +75,6 @@ data class Task(
   val updateTrigger: MutableState<Long> = mutableLongStateOf(0)
 )
 
-val TASK_TEXT_CLASSIFICATION = Task(
-  type = TaskType.TEXT_CLASSIFICATION,
-  iconVectorResourceId = R.drawable.text_spark,
-  models = MODELS_TEXT_CLASSIFICATION,
-  description = "Classify text into different categories",
-  textInputPlaceHolderRes = R.string.text_input_placeholder_text_classification
-)
-
-val TASK_IMAGE_CLASSIFICATION = Task(
-  type = TaskType.IMAGE_CLASSIFICATION,
-  icon = Icons.Rounded.ImageSearch,
-  description = "Classify images into different categories",
-  models = MODELS_IMAGE_CLASSIFICATION
-)
-
-val TASK_LLM_CHAT = Task(
-  type = TaskType.LLM_CHAT,
-  icon = Icons.Outlined.Forum,
-  models = mutableListOf(),
-  description = "Chat with on-device large language models",
-  docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
-  sourceCodeUrl = "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt",
-  textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat
-)
-
-val TASK_LLM_PROMPT_LAB = Task(
-  type = TaskType.LLM_PROMPT_LAB,
-  icon = Icons.Outlined.Widgets,
-  models = mutableListOf(),
-  description = "Single turn use cases with on-device large language model",
-  docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
-  sourceCodeUrl = "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt",
-  textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat
-)
-
 val TASK_LLM_ASK_IMAGE = Task(
   type = TaskType.LLM_ASK_IMAGE,
   icon = Icons.Outlined.Mms,
@@ -120,21 +85,9 @@ val TASK_LLM_ASK_IMAGE = Task(
   textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat
 )
 
-val TASK_IMAGE_GENERATION = Task(
-  type = TaskType.IMAGE_GENERATION,
-  iconVectorResourceId = R.drawable.image_spark,
-  models = MODELS_IMAGE_GENERATION,
-  description = "Generate images from text",
-  docUrl = "https://ai.google.dev/edge/mediapipe/solutions/vision/image_generator/android",
-  sourceCodeUrl = "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/imagegeneration/ImageGenerationModelHelper.kt",
-  textInputPlaceHolderRes = R.string.text_image_generation_text_field_placeholder
-)
-
 /** All tasks. */
 val TASKS: List<Task> = listOf(
-  TASK_LLM_ASK_IMAGE,
-  TASK_LLM_PROMPT_LAB,
-  TASK_LLM_CHAT,
+  TASK_LLM_ASK_IMAGE
 )
 
 fun getModelByName(name: String): Model? {
