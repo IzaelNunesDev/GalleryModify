@@ -17,44 +17,32 @@
 package com.google.ai.edge.gallery.ui.home
 
 import android.content.Context
+import android.app.Activity
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,9 +56,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,50 +64,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withLink
 import androidx.compose.ui.tooling.preview.Preview
+import com.google.ai.edge.gallery.services.ScreenTranslatorService
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.google.ai.edge.gallery.GalleryTopAppBar
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.AppBarAction
 import com.google.ai.edge.gallery.data.AppBarActionType
 import com.google.ai.edge.gallery.data.ImportedModelInfo
-import com.google.ai.edge.gallery.data.Task
-import com.google.ai.edge.gallery.ui.common.TaskIcon
-import com.google.ai.edge.gallery.ui.common.getTaskBgColor
+import com.google.ai.edge.gallery.data.Task // Task might still be needed for navigateToTaskScreen
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import com.google.ai.edge.gallery.ui.preview.PreviewModelManagerViewModel
 import com.google.ai.edge.gallery.ui.theme.GalleryTheme
-import com.google.ai.edge.gallery.ui.theme.customColors
-import com.google.ai.edge.gallery.ui.theme.titleMediumNarrow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val TAG = "AGHomeScreen"
-private const val TASK_COUNT_ANIMATION_DURATION = 250
-private const val MAX_TASK_CARD_PADDING = 24
-private const val MIN_TASK_CARD_PADDING = 18
-private const val MAX_TASK_CARD_RADIUS = 43.5
-private const val MIN_TASK_CARD_RADIUS = 30
-private const val MAX_TASK_CARD_ICON_SIZE = 56
-private const val MIN_TASK_CARD_ICON_SIZE = 50
+// TASK_COUNT_ANIMATION_DURATION, MAX_TASK_CARD_PADDING, etc. are removed
 
 /** Navigation destination data */
 object HomeScreenDestination {
@@ -151,10 +113,28 @@ fun HomeScreen(
   val scope = rememberCoroutineScope()
   val context = LocalContext.current
 
+  val mediaProjectionResultLauncher = rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.StartActivityForResult()
+  ) { result ->
+      if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+          val serviceIntent = Intent(context, ScreenTranslatorService::class.java).apply {
+              putExtra(ScreenTranslatorService.EXTRA_RESULT_CODE, result.resultCode)
+              putExtra(ScreenTranslatorService.EXTRA_DATA_INTENT, result.data)
+          }
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+              context.startForegroundService(serviceIntent)
+          } else {
+              context.startService(serviceIntent)
+          }
+      } else {
+          Toast.makeText(context, "Screen capture permission denied.", Toast.LENGTH_SHORT).show()
+      }
+  }
+
   val filePickerLauncher: ActivityResultLauncher<Intent> = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.StartActivityForResult()
   ) { result ->
-    if (result.resultCode == android.app.Activity.RESULT_OK) {
+    if (result.resultCode == Activity.RESULT_OK) {
       result.data?.data?.let { uri ->
         val fileName = getFileName(context = context, uri = uri)
         Log.d(TAG, "Selected file: $fileName")
@@ -192,16 +172,39 @@ fun HomeScreen(
       Icon(Icons.Filled.Add, "")
     }
   }) { innerPadding ->
-    Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxSize()) {
-      TaskList(
-        tasks = uiState.tasks,
-        navigateToTaskScreen = navigateToTaskScreen,
-        loadingModelAllowlist = uiState.loadingModelAllowlist,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = innerPadding,
-      )
-
-      SnackbarHost(hostState = snackbarHostState, modifier = Modifier.padding(bottom = 32.dp))
+    Box(
+      modifier = Modifier.fillMaxSize().padding(innerPadding),
+      contentAlignment = Alignment.Center
+    ) {
+      Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+      ) {
+        Text("Loading OCR Translator...")
+        Button(onClick = {
+          val mediaProjectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+          mediaProjectionResultLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
+        }) {
+          Text("Start Translator Service")
+        }
+        Button(onClick = {
+          val intent = Intent(context, ScreenTranslatorService::class.java)
+          context.stopService(intent)
+        }) {
+          Text("Stop Translator Service")
+        }
+        Button(onClick = {
+          ScreenTranslatorService.isProcessingEnabled = !ScreenTranslatorService.isProcessingEnabled
+          Toast.makeText(context, "Processing ${if (ScreenTranslatorService.isProcessingEnabled) "Enabled" else "Disabled"}", Toast.LENGTH_SHORT).show()
+        }) {
+            Text("Toggle Processing (On/Off)")
+        }
+      }
+      // SnackbarHost can remain if global messages are still desired,
+      // or be removed if it was only for task-list related operations.
+      // For now, let's keep it as it might be used by the import functionality.
+      SnackbarHost(hostState = snackbarHostState, modifier = Modifier.padding(bottom = 32.dp).align(Alignment.BottomCenter))
     }
   }
 
@@ -326,227 +329,6 @@ fun HomeScreen(
         }
       },
     )
-  }
-}
-
-@Composable
-private fun TaskList(
-  tasks: List<Task>,
-  navigateToTaskScreen: (Task) -> Unit,
-  loadingModelAllowlist: Boolean,
-  modifier: Modifier = Modifier,
-  contentPadding: PaddingValues = PaddingValues(0.dp),
-) {
-  val density = LocalDensity.current
-  val windowInfo = LocalWindowInfo.current
-  val screenWidthDp = remember {
-    with(density) {
-      windowInfo.containerSize.width.toDp()
-    }
-  }
-  val screenHeightDp = remember {
-    with(density) {
-      windowInfo.containerSize.height.toDp()
-    }
-  }
-  val sizeFraction = remember { ((screenWidthDp - 360.dp) / (410.dp - 360.dp)).coerceIn(0f, 1f) }
-  val linkColor = MaterialTheme.customColors.linkColor
-
-  val introText = buildAnnotatedString {
-    append("Welcome to Google AI Edge Gallery! Explore a world of amazing on-device models from ")
-    withLink(
-      link = LinkAnnotation.Url(
-        url = "https://huggingface.co/litert-community", // Replace with the actual URL
-        styles = TextLinkStyles(
-          style = SpanStyle(
-            color = linkColor,
-            textDecoration = TextDecoration.Underline,
-          )
-        )
-      )
-    ) {
-      append("LiteRT community")
-    }
-  }
-
-  Box(modifier = modifier.fillMaxSize()) {
-    LazyVerticalGrid(
-      columns = GridCells.Fixed(count = 2),
-      contentPadding = contentPadding,
-      modifier = modifier.padding(12.dp),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      // New rel
-      item(key = "newReleaseNotification", span = { GridItemSpan(2) }) {
-        NewReleaseNotification()
-      }
-
-      // Headline.
-      item(key = "headline", span = { GridItemSpan(2) }) {
-        Text(
-          introText,
-          textAlign = TextAlign.Center,
-          style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-          modifier = Modifier.padding(bottom = 20.dp).padding(horizontal = 16.dp)
-        )
-      }
-
-      if (loadingModelAllowlist) {
-        item(key = "loading", span = { GridItemSpan(2) }) {
-          Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(top = 32.dp)
-          ) {
-            CircularProgressIndicator(
-              trackColor = MaterialTheme.colorScheme.surfaceVariant,
-              strokeWidth = 3.dp,
-              modifier = Modifier
-                .padding(end = 8.dp)
-                .size(20.dp)
-            )
-            Text("Loading model list...", style = MaterialTheme.typography.bodyMedium)
-          }
-        }
-      } else {
-        // LLM Cards.
-        item(key = "llmCardsHeader", span = { GridItemSpan(2) }) {
-          Text(
-            "Example LLM Use Cases",
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp)
-          )
-        }
-
-        items(tasks) { task ->
-          TaskCard(
-            sizeFraction = sizeFraction, task = task, onClick = {
-              navigateToTaskScreen(task)
-            }, modifier = Modifier
-              .fillMaxWidth()
-              .aspectRatio(1f)
-          )
-        }
-      }
-
-      // Bottom padding.
-      item(key = "bottomPadding", span = { GridItemSpan(2) }) {
-        Spacer(modifier = Modifier.height(60.dp))
-      }
-    }
-
-    // Gradient overlay at the bottom.
-    Box(
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(screenHeightDp * 0.25f)
-        .background(
-          Brush.verticalGradient(
-            colors = MaterialTheme.customColors.homeBottomGradient,
-          )
-        )
-        .align(Alignment.BottomCenter)
-    )
-  }
-}
-
-@Composable
-private fun TaskCard(
-  task: Task, onClick: () -> Unit, sizeFraction: Float, modifier: Modifier = Modifier
-) {
-  val padding =
-    (MAX_TASK_CARD_PADDING - MIN_TASK_CARD_PADDING) * sizeFraction + MIN_TASK_CARD_PADDING
-  val radius = (MAX_TASK_CARD_RADIUS - MIN_TASK_CARD_RADIUS) * sizeFraction + MIN_TASK_CARD_RADIUS
-  val iconSize =
-    (MAX_TASK_CARD_ICON_SIZE - MIN_TASK_CARD_ICON_SIZE) * sizeFraction + MIN_TASK_CARD_ICON_SIZE
-
-  // Observes the model count and updates the model count label with a fade-in/fade-out animation
-  // whenever the count changes.
-  val modelCount by remember {
-    derivedStateOf {
-      val trigger = task.updateTrigger.value
-      if (trigger >= 0) {
-        task.models.size
-      } else {
-        0
-      }
-    }
-  }
-  val modelCountLabel by remember {
-    derivedStateOf {
-      when (modelCount) {
-        1 -> "1 Model"
-        else -> "%d Models".format(modelCount)
-      }
-    }
-  }
-  var curModelCountLabel by remember { mutableStateOf("") }
-  var modelCountLabelVisible by remember { mutableStateOf(true) }
-  val modelCountAlpha: Float by animateFloatAsState(
-    targetValue = if (modelCountLabelVisible) 1f else 0f,
-    animationSpec = tween(durationMillis = TASK_COUNT_ANIMATION_DURATION)
-  )
-  val modelCountScale: Float by animateFloatAsState(
-    targetValue = if (modelCountLabelVisible) 1f else 0.7f,
-    animationSpec = tween(durationMillis = TASK_COUNT_ANIMATION_DURATION)
-  )
-
-  LaunchedEffect(modelCountLabel) {
-    if (curModelCountLabel.isEmpty()) {
-      curModelCountLabel = modelCountLabel
-    } else {
-      modelCountLabelVisible = false
-      delay(TASK_COUNT_ANIMATION_DURATION.toLong())
-      curModelCountLabel = modelCountLabel
-      modelCountLabelVisible = true
-    }
-  }
-
-  Card(
-    modifier = modifier
-      .clip(RoundedCornerShape(radius.dp))
-      .clickable(
-        onClick = onClick,
-      ),
-    colors = CardDefaults.cardColors(
-      containerColor = getTaskBgColor(task = task)
-    ),
-  ) {
-    Column(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(padding.dp),
-    ) {
-      // Icon.
-      TaskIcon(task = task, width = iconSize.dp)
-
-      Spacer(modifier = Modifier.weight(2f))
-
-      // Title.
-      Text(
-        task.type.label,
-        color = MaterialTheme.colorScheme.primary,
-        style = titleMediumNarrow.copy(
-          fontSize = 20.sp,
-          fontWeight = FontWeight.Bold,
-        ),
-      )
-
-      Spacer(modifier = Modifier.weight(1f))
-
-      // Model count.
-      Text(
-        curModelCountLabel,
-        color = MaterialTheme.colorScheme.secondary,
-        style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier
-          .alpha(modelCountAlpha)
-          .scale(modelCountScale),
-      )
-    }
   }
 }
 

@@ -22,6 +22,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.google.ai.edge.gallery.ui.theme.GalleryTheme
@@ -39,6 +43,19 @@ class MainActivity : ComponentActivity() {
         ) {
           GalleryApp()
         }
+      }
+    }
+    requestOverlayPermission()
+  }
+
+  private fun requestOverlayPermission() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      if (!Settings.canDrawOverlays(this)) {
+        val intent = Intent(
+          Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+          Uri.parse("package:$packageName")
+        )
+        startActivity(intent)
       }
     }
   }
